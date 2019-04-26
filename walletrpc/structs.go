@@ -4,19 +4,19 @@ package walletrpc
 type TransferRequest struct {
 	// Destinations - array of destinations to receive XMR:
 	Destinations []Destination `json:"destinations"`
+	// payment_id - string; (Optional) Random 32-byte/64-character hex string to identify a transaction.
+	PaymentID string `json:"payment_id,omitempty"`
 	// Fee - unsigned int; Ignored, will be automatically calculated.
 	Fee uint64 `json:"fee,omitempty"`
 	// Mixin - unsigned int; Number of outpouts from the blockchain to mix with (0 means no mixing).
 	Mixin uint64 `json:"mixin"`
 	// unlock_time - unsigned int; Number of blocks before the monero can be spent (0 to not add a lock).
 	UnlockTime uint64 `json:"unlock_time"`
-	// payment_id - string; (Optional) Random 32-byte/64-character hex string to identify a transaction.
-	PaymentID string `json:"payment_id,omitempty"`
-	// get_tx_key - boolean; (Optional) Return the transaction key after sending.
-	GetTxKey bool `json:"get_tx_key"`
 	// priority - unsigned int; Set a priority for the transaction.
 	// Accepted Values are: 0-3 for: default, unimportant, normal, elevated, priority.
 	Priority Priority `json:"priority"`
+	// get_tx_key - boolean; (Optional) Return the transaction key after sending.
+	GetTxKey bool `json:"get_tx_key"`
 	// do_not_relay - boolean; (Optional) If true, the newly created transaction will not be relayed to the monero network. (Defaults to false)
 	DoNotRelay bool `json:"do_not_relay,omitempty"`
 	// get_tx_hex - boolean; Return the transaction as hex string after sending
@@ -61,18 +61,18 @@ type TransferSplitResponse struct {
 type SweepAllRequest struct {
 	// address - string; Destination public address.
 	Address string `json:"address"`
+	// payment_id - string; (Optional) Random 32-byte/64-character hex string to identify a transaction.
+	PaymentID string `json:"payment_id,omitempty"`
 	// priority - unsigned int; (Optional)
 	Priority Priority `json:"priority,omitempty"`
 	// mixin - unsigned int; Number of outpouts from the blockchain to mix with (0 means no mixing).
 	Mixin uint64 `json:"mixin"`
 	// unlock_time - unsigned int; Number of blocks before the monero can be spent (0 to not add a lock).
 	UnlockTime uint64 `json:"unlock_time"`
-	// payment_id - string; (Optional) Random 32-byte/64-character hex string to identify a transaction.
-	PaymentID string `json:"payment_id,omitempty"`
-	// get_tx_keys - boolean; (Optional) Return the transaction keys after sending.
-	GetTxKeys bool `json:"get_tx_keys,omitempty"`
 	// below_amount - unsigned int; (Optional)
 	BelowAmount uint64 `json:"below_amount"`
+	// get_tx_keys - boolean; (Optional) Return the transaction keys after sending.
+	GetTxKeys bool `json:"get_tx_keys,omitempty"`
 	// do_not_relay - boolean; (Optional)
 	DoNotRelay bool `json:"do_not_relay,omitempty"`
 	// get_tx_hex - boolean; (Optional) return the transactions as hex encoded string.
@@ -128,7 +128,7 @@ type Transfer struct {
 	Amount       uint64        `json:"amount"`
 	Fee          uint64        `json:"fee"`
 	Note         string        `json:"note"`
-	Destinations []Destination `json:"destinations,omitempty"` // TODO: check if deprecated
+	Destinations []Destination `json:"destinations,omitempty"`
 	Type         string        `json:"type"`
 }
 

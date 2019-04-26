@@ -104,5 +104,5 @@ const (
 	// QueryKeyView is the private view key
 	QueryKeyView QueryKeyType = "view_key"
 	// QueryKeySpend is the private spend key
-	QueryKeySpend QueryKeyType = "spend_key" //TODO: test
+	QueryKeySpend QueryKeyType = "spend_key"
 )

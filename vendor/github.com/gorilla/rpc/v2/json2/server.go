@@ -59,9 +59,22 @@ type serverResponse struct {
 // Codec
 // ----------------------------------------------------------------------------
 
-// NewcustomCodec returns a new JSON Codec based on passed encoder selector.
+// NewCustomCodec returns a new JSON Codec based on passed encoder selector.
 func NewCustomCodec(encSel rpc.EncoderSelector) *Codec {
 	return &Codec{encSel: encSel}
+}
+
+// NewCustomCodecWithErrorMapper returns a new JSON Codec based on the passed encoder selector
+// and also accepts an errorMapper function.
+// The errorMapper function will be called if the Service implementation returns an error, with that
+// error as a param, replacing it by the value returned by this function. This function is intended
+// to decouple your service implementation from the codec itself, making possible to return abstract
+// errors in your service, and then mapping them here to the JSON-RPC error codes.
+func NewCustomCodecWithErrorMapper(encSel rpc.EncoderSelector, errorMapper func(error) error) *Codec {
+	return &Codec{
+		encSel:      encSel,
+		errorMapper: errorMapper,
+	}
 }
 
 // NewCodec returns a new JSON Codec.
@@ -71,12 +84,13 @@ func NewCodec() *Codec {
 
 // Codec creates a CodecRequest to process each request.
 type Codec struct {
-	encSel rpc.EncoderSelector
+	encSel      rpc.EncoderSelector
+	errorMapper func(error) error
 }
 
 // NewRequest returns a CodecRequest.
 func (c *Codec) NewRequest(r *http.Request) rpc.CodecRequest {
-	return newCodecRequest(r, c.encSel.Select(r))
+	return newCodecRequest(r, c.encSel.Select(r), c.errorMapper)
 }
 
 // ----------------------------------------------------------------------------
@@ -84,33 +98,35 @@ func (c *Codec) NewRequest(r *http.Request) rpc.CodecRequest {
 // ----------------------------------------------------------------------------
 
 // newCodecRequest returns a new CodecRequest.
-func newCodecRequest(r *http.Request, encoder rpc.Encoder) rpc.CodecRequest {
+func newCodecRequest(r *http.Request, encoder rpc.Encoder, errorMapper func(error) error) rpc.CodecRequest {
 	// Decode the request body and check if RPC method is valid.
 	req := new(serverRequest)
 	err := json.NewDecoder(r.Body).Decode(req)
+
 	if err != nil {
 		err = &Error{
 			Code:    E_PARSE,
 			Message: err.Error(),
 			Data:    req,
 		}
-	}
-	if req.Version != Version {
+	} else if req.Version != Version {
 		err = &Error{
 			Code:    E_INVALID_REQ,
 			Message: "jsonrpc must be " + Version,
 			Data:    req,
 		}
 	}
+
 	r.Body.Close()
-	return &CodecRequest{request: req, err: err, encoder: encoder}
+	return &CodecRequest{request: req, err: err, encoder: encoder, errorMapper: errorMapper}
 }
 
 // CodecRequest decodes and encodes a single request.
 type CodecRequest struct {
-	request *serverRequest
-	err     error
-	encoder rpc.Encoder
+	request     *serverRequest
+	err         error
+	encoder     rpc.Encoder
+	errorMapper func(error) error
 }
 
 // Method returns the RPC method for the current request.
@@ -169,6 +185,7 @@ func (c *CodecRequest) WriteResponse(w http.ResponseWriter, reply interface{}) {
 }
 
 func (c *CodecRequest) WriteError(w http.ResponseWriter, status int, err error) {
+	err = c.tryToMapIfNotAnErrorAlready(err)
 	jsonErr, ok := err.(*Error)
 	if !ok {
 		jsonErr = &Error{
@@ -184,18 +201,30 @@ func (c *CodecRequest) WriteError(w http.ResponseWriter, status int, err error) 
 	c.writeServerResponse(w, res)
 }
 
+func (c CodecRequest) tryToMapIfNotAnErrorAlready(err error) error {
+	if _, ok := err.(*Error); ok || c.errorMapper == nil {
+		return err
+	}
+	return c.errorMapper(err)
+}
+
 func (c *CodecRequest) writeServerResponse(w http.ResponseWriter, res *serverResponse) {
-	// Id is null for notifications and they don't have a response.
-	if c.request.Id != nil {
+	// Id is null for notifications and they don't have a response, unless we couldn't even parse the JSON, in that
+	// case we can't know whether it was intended to be a notification
+	if c.request.Id != nil || isParseErrorResponse(res) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		encoder := json.NewEncoder(c.encoder.Encode(w))
 		err := encoder.Encode(res)
 
 		// Not sure in which case will this happen. But seems harmless.
 		if err != nil {
-			rpc.WriteError(w, 400, err.Error())
+			rpc.WriteError(w, http.StatusInternalServerError, err.Error())
 		}
 	}
+}
+
+func isParseErrorResponse(res *serverResponse) bool {
+	return res != nil && res.Error != nil && res.Error.Code == E_PARSE
 }
 
 type EmptyResponse struct {

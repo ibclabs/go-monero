@@ -13,17 +13,23 @@ import (
 //
 // 1 million IDs at 64-bit (simplified): 1,000,000^2 / (2^64 * 2) = ~1/36,893,488 so
 // there is a 50% chance a collision happens around 5.06 billion IDs generated.
-func NewPaymentID64() string {
+func NewPaymentID64() (string, error) {
 	buf := make([]byte, 8)
-	rand.Read(buf)
-	return hex.EncodeToString(buf)
+	_, err := rand.Read(buf)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf), nil
 }
 
 // NewPaymentID256 generates a 256 bit payment ID (hex encoded).
-func NewPaymentID256() string {
+func NewPaymentID256() (string, error) {
 	buf := make([]byte, 32)
-	rand.Read(buf)
-	return hex.EncodeToString(buf)
+	_, err := rand.Read(buf)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf), nil
 }
 
 // XMRToDecimal converts a raw atomic XMR balance to a more

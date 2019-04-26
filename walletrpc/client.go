@@ -8,106 +8,8 @@ import (
 	"github.com/gorilla/rpc/v2/json2"
 )
 
-// Client is a monero-wallet-rpc client.
-type Client interface {
-	// Return the wallet's balance.
-	GetBalance() (balance, unlockedBalance uint64, err error)
-	// Return the wallet's address.
-	// address - string; The 95-character hex address string of the monero-wallet-rpc in session.
-	GetAddress() (address string, err error)
-	// GetHeight - Returns the wallet's current block height.
-	// height - unsigned int; The current monero-wallet-rpc's blockchain height.
-	// If the wallet has been offline for a long time, it may need to catch up with the daemon.
-	GetHeight() (height uint64, err error)
-	// Transfer - Send monero to a number of recipients.
-	Transfer(req TransferRequest) (resp *TransferResponse, err error)
-	// Same as transfer, but can split into more than one tx if necessary.
-	TransferSplit(req TransferRequest) (resp *TransferSplitResponse, err error)
-	// Send all dust outputs back to the wallet's, to make them easier to spend (and mix).
-	SweepDust() (txHashList []string, err error)
-	// Send all unlocked balance to an address.
-	SweepAll(req SweepAllRequest) (resp *SweepAllResponse, err error)
-	// Save the blockchain.
-	Store() error
-	// Get a list of incoming payments using a given payment id.
-	GetPayments(paymentid string) (payments []Payment, err error)
-	// Get a list of incoming payments using a given payment id, or a list of
-	// payments ids, from a given height. This method is the preferred method
-	// over get_payments because it has the same functionality but is more extendable.
-	// Either is fine for looking up transactions by a single payment ID.
-	// Inputs:
-	//
-	//	payment_ids - array of: string
-	//	min_block_height - unsigned int; The block height at which to start looking for payments.
-	GetBulkPayments(paymentids []string, minblockheight uint) (payments []Payment, err error)
-	// Returns a list of transfers.
-	GetTransfers(req GetTransfersRequest) (resp *GetTransfersResponse, err error)
-	// Show information about a transfer to/from this address.
-	GetTransferByTxID(txid string) (transfer *Transfer, err error)
-	// Return a list of incoming transfers to the wallet.
-	IncomingTransfers(transfertype GetTransferType) (transfers []IncTransfer, err error)
-	// Return the spend or view private key (or mnemonic seed).
-	QueryKey(keytype QueryKeyType) (key string, err error)
-	// Make an integrated address from the wallet address and a payment id.
-	// payment_id - string; hex encoded; can be empty, in which case a random payment id is generated
-	MakeIntegratedAddress(paymentid string) (integratedaddr string, err error)
-	// Retrieve the standard address and payment id corresponding to an integrated address.
-	SplitIntegratedAddress(integratedaddr string) (paymentid, address string, err error)
-	// Stops the wallet, storing the current state.
-	StopWallet() error
-	// Create a payment URI using the official URI spec.
-	MakeURI(req URIDef) (uri string, err error)
-	// Parse a payment URI to get payment information.
-	ParseURI(uri string) (parsed *URIDef, err error)
-	// Rescan blockchain from scratch.
-	RescanBlockchain() error
-	// Set arbitrary string notes for transactions.
-	SetTxNotes(txids, notes []string) error
-	// Get string notes for transactions.
-	GetTxNotes(txids []string) (notes []string, err error)
-	// Sign a string.
-	Sign(data string) (signature string, err error)
-	// Verify a signature on a string.
-	Verify(data, address, signature string) (good bool, err error)
-	// Export a signed set of key images.
-	ExportKeyImages() (signedkeyimages []SignedKeyImage, err error)
-	// Import signed key images list and verify their spent status.
-	ImportKeyImages(signedkeyimages []SignedKeyImage) (resp *ImportKeyImageResponse, err error)
-	// Retrieves entries from the address book.
-	// indexes - array of unsigned int; indices of the requested address book entries
-	GetAddressBook(indexes []uint64) (entries []AddressBookEntry, err error)
-	// Add an entry to the address book.
-	AddAddressBook(entry AddressBookEntry) (index uint64, err error)
-	// Delete an entry from the address book.
-	DeleteAddressBook(index uint64) error
-	// Rescan the blockchain for spent outputs.
-	RescanSpent() error
-	// Start mining in the Monero daemon.
-	// Inputs:
-	//
-	//	threads_count - unsigned int; Number of threads created for mining
-	//	do_background_mining - boolean;
-	//	ignore_battery - boolean;
-	StartMining(threads uint, background, ignorebattery bool) error
-	// Stop mining in the Monero daemon.
-	StopMining() error
-	// Get a list of available languages for your wallet's seed.
-	GetLanguages() (languages []string, err error)
-	// Create a new wallet. You need to have set the argument "–wallet-dir" when
-	// launching monero-wallet-rpc to make this work.
-	// Inputs:
-	//
-	//   filename - string;
-	//    password - string;
-	//    language - string; Language for your wallets' seed.
-	CreateWallet(filename, password, language string) error
-	// Open a wallet. You need to have set the argument "–wallet-dir" when
-	// launching monero-wallet-rpc to make this work.
-	OpenWallet(filename, password string) error
-}
-
 // New returns a new monero-wallet-rpc client.
-func New(cfg Config) Client {
+func New(cfg Config) *client {
 	cl := &client{
 		addr:    cfg.Address,
 		headers: cfg.CustomHeaders,
@@ -146,10 +48,10 @@ func (c *client) do(method string, in, out interface{}) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("http status %v", resp.StatusCode)
 	}
-	defer resp.Body.Close()
 
 	// in theory this is only done to catch
 	// any monero related errors if

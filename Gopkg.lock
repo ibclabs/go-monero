@@ -2,35 +2,46 @@
 
 
 [[projects]]
-  branch = "master"
+  digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
-  revision = "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
+  pruneopts = "UT"
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
 
 [[projects]]
-  branch = "master"
+  digest = "1:6a6337e6973321c73a2f29cd68442fb7800ee3dbce4f0053a0669b4287062b9a"
   name = "github.com/gorilla/rpc"
   packages = [
     "v2",
-    "v2/json2"
+    "v2/json2",
   ]
-  revision = "22c016f3df3febe0c1f6727598b6389507e03a18"
+  pruneopts = "UT"
+  revision = "bffcfa752ad4e523cc8f720afeb5b985ed41ae16"
+  version = "v1.2.0"
 
 [[projects]]
-  branch = "master"
+  digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
-  revision = "e8554b8641db39598be7f6342874b958f12ae1d4"
+  pruneopts = "UT"
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
+  digest = "1:972c2427413d41a1e06ca4897e8528e5a1622894050e2f527b38ddf0f343f759"
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "e3a8ff8ce36581f87a15341206f205b1da467059"
+  pruneopts = "UT"
+  revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
+  version = "v1.3.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "60d07b8969098cab139c5057fa410f8cfbf2cf1d8d651930784a74f3df9ddcc7"
+  input-imports = [
+    "github.com/gorilla/rpc/v2/json2",
+    "github.com/stretchr/testify/assert",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1

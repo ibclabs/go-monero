@@ -76,10 +76,6 @@ func testClientGetBalance(t *testing.T) {
 	assert.Equal(t, uint64(10000000000000), unlocked)
 }
 
-//TODO: write more server stubs
-//
-//
-
 type testfn = func(method string, params *json.RawMessage, w http.ResponseWriter, r *http.Request) bool
 
 func basicTestServer(tests []testfn) *httptest.Server {
