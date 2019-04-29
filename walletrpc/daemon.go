@@ -23,3 +23,26 @@ func (c *client) GetLastBlockHeader() (res BlockHeaderResponse, err error) {
 	err = c.do("getlastblockheader", nil, &res)
 	return
 }
+
+type Block struct {
+	Blob        string      `json:"blob"`
+	BlockHeader BlockHeader `json:"block_header"`
+	Txs         []string    `json:"tx_hashes"`
+	Status      string      `json:"status"`
+}
+
+func (c *client) GetBlockByHeight(height uint) (res Block, err error) {
+	req := struct {
+		Height uint `json:"height"`
+	}{height}
+	err = c.do("getblock", req, &res)
+	return
+}
+
+func (c *client) GetBlockByHash(hash string) (res Block, err error) {
+	req := struct {
+		Hash string `json:"hash"`
+	}{hash}
+	err = c.do("getblock", req, &res)
+	return
+}
