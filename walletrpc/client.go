@@ -13,14 +13,13 @@ func New(cfg Config) *client {
 	cl := &client{
 		addr:    cfg.Address,
 		headers: cfg.CustomHeaders,
+		httpcl:  http.DefaultClient,
 	}
-	if cfg.Transport == nil {
-		cl.httpcl = http.DefaultClient
-	} else {
-		cl.httpcl = &http.Client{
-			Transport: cfg.Transport,
-		}
+
+	if cfg.Transport != nil {
+		cl.httpcl = &http.Client{Transport: cfg.Transport}
 	}
+
 	return cl
 }
 
@@ -35,15 +34,16 @@ func (c *client) do(method string, in, out interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	req, err := http.NewRequest(http.MethodPost, c.addr, bytes.NewBuffer(payload))
 	if err != nil {
 		return err
 	}
-	if c.headers != nil {
-		for k, v := range c.headers {
-			req.Header.Set(k, v)
-		}
+
+	for k, v := range c.headers {
+		req.Header.Set(k, v)
 	}
+
 	resp, err := c.httpcl.Do(req)
 	if err != nil {
 		return err
@@ -53,161 +53,127 @@ func (c *client) do(method string, in, out interface{}) error {
 		return fmt.Errorf("http status %v", resp.StatusCode)
 	}
 
-	// in theory this is only done to catch
-	// any monero related errors if
-	// we are not expecting any data back
 	if out == nil {
-		v := &json2.EmptyResponse{}
-		return json2.DecodeClientResponse(resp.Body, v)
+		return json2.DecodeClientResponse(resp.Body, new(json2.EmptyResponse))
 	}
 	return json2.DecodeClientResponse(resp.Body, out)
 }
 
-func (c *client) GetBalance() (balance, unlockedBalance uint64, err error) {
+func (c *client) GetBalance() (uint64, uint64, error) {
 	jd := struct {
 		Balance         uint64 `json:"balance"`
 		UnlockedBalance uint64 `json:"unlocked_balance"`
 	}{}
-	err = c.do("getbalance", nil, &jd)
+	err := c.do("getbalance", nil, &jd)
 	return jd.Balance, jd.UnlockedBalance, err
 }
 
-func (c *client) GetAddress() (address string, err error) {
+func (c *client) GetAddress() (string, error) {
 	jd := struct {
 		Address string `json:"address"`
 	}{}
-	err = c.do("getaddress", nil, &jd)
-	if err != nil {
-		return "", err
-	}
-	return jd.Address, nil
+	err := c.do("getaddress", nil, &jd)
+	return jd.Address, err
 }
 
-func (c *client) GetHeight() (height uint64, err error) {
+func (c *client) GetHeight() (uint64, error) {
 	jd := struct {
 		Height uint64 `json:"height"`
 	}{}
-	err = c.do("getheight", nil, &jd)
-	if err != nil {
-		return 0, err
-	}
-	return jd.Height, nil
+	err := c.do("getheight", nil, &jd)
+	return jd.Height, err
 }
 
-func (c *client) Transfer(req TransferRequest) (resp *TransferResponse, err error) {
-	resp = &TransferResponse{}
-	err = c.do("transfer", &req, resp)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
+func (c *client) Transfer(req TransferRequest) (resp TransferResponse, err error) {
+	err = c.do("transfer", &req, &resp)
+	return
 }
 
-func (c *client) TransferSplit(req TransferRequest) (resp *TransferSplitResponse, err error) {
-	resp = &TransferSplitResponse{}
-	err = c.do("transfer_split", &req, resp)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
+func (c *client) TransferSplit(req TransferRequest) (resp TransferSplitResponse, err error) {
+	err = c.do("transfer_split", &req, &resp)
+	return
 }
 
-func (c *client) SweepDust() (txHashList []string, err error) {
+func (c *client) SweepDust() ([]string, error) {
 	jd := struct {
 		TxHashList []string `json:"tx_hash_list"`
 	}{}
-	err = c.do("sweep_dust", nil, &jd)
-	if err != nil {
-		return nil, err
-	}
-	return jd.TxHashList, nil
+	err := c.do("sweep_dust", nil, &jd)
+	return jd.TxHashList, err
 }
 
-func (c *client) SweepAll(req SweepAllRequest) (resp *SweepAllResponse, err error) {
-	resp = &SweepAllResponse{}
-	err = c.do("sweep_all", &req, resp)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
+func (c *client) SweepAll(req SweepAllRequest) (resp SweepAllResponse, err error) {
+	err = c.do("sweep_all", &req, &resp)
+	return
 }
 
 func (c *client) Store() error {
 	return c.do("store", nil, nil)
 }
 
-func (c *client) GetPayments(paymentid string) (payments []Payment, err error) {
+func (c *client) GetPayments(id string) ([]Payment, error) {
 	jin := struct {
 		PaymentID string `json:"payment_id"`
 	}{
-		paymentid,
+		id,
 	}
 	jd := struct {
 		Payments []Payment `json:"payments"`
 	}{}
-	err = c.do("get_payments", &jin, &jd)
-	if err != nil {
-		return nil, err
-	}
-	return jd.Payments, nil
+
+	err := c.do("get_payments", &jin, &jd)
+	return jd.Payments, err
 }
 
-func (c *client) GetBulkPayments(paymentids []string, minblockheight uint) (payments []Payment, err error) {
+func (c *client) GetBulkPayments(payments []string, minHeight uint) ([]Payment, error) {
 	jin := struct {
 		PaymentIDs     []string `json:"payment_ids"`
 		MinBlockHeight uint     `json:"min_block_height"`
 	}{
-		paymentids,
-		minblockheight,
+		payments,
+		minHeight,
 	}
 	jd := struct {
 		Payments []Payment `json:"payments"`
 	}{}
-	err = c.do("get_bulk_payments", &jin, &jd)
-	if err != nil {
-		return nil, err
-	}
-	return jd.Payments, nil
+	err := c.do("get_bulk_payments", &jin, &jd)
+	return jd.Payments, err
 }
 
-func (c *client) GetTransfers(req GetTransfersRequest) (resp *GetTransfersResponse, err error) {
-	resp = &GetTransfersResponse{}
-	err = c.do("get_transfers", &req, resp)
+func (c *client) GetTransfers(req GetTransfersRequest) (resp GetTransfersResponse, err error) {
+	err = c.do("get_transfers", &req, &resp)
 	return
 }
 
-func (c *client) GetTransferByTxID(txid string) (transfer *Transfer, err error) {
+func (c *client) GetTransferByTxID(tx string) (transfer Transfer, err error) {
 	jin := struct {
 		TxID string `json:"txid"`
-	}{
-		txid,
-	}
+	}{tx}
+
 	jd := struct {
 		Transfer *Transfer `json:"transfer"`
 	}{}
+
 	err = c.do("get_transfer_by_txid", &jin, &jd)
-	if err != nil {
-		return
+	if jd.Transfer != nil {
+		transfer = *jd.Transfer
 	}
-	transfer = jd.Transfer
+
 	return
 }
 
-func (c *client) IncomingTransfers(transfertype GetTransferType) (transfers []IncTransfer, err error) {
+func (c *client) IncomingTransfers(transfer GetTransferType) ([]IncTransfer, error) {
 	jin := struct {
 		TransferType GetTransferType `json:"transfer_type"`
 	}{
-		transfertype,
+		transfer,
 	}
 	jd := struct {
 		Transfers []IncTransfer `json:"transfers"`
 	}{}
-	err = c.do("incoming_transfers", &jin, &jd)
-	if err != nil {
-		return
-	}
-	transfers = jd.Transfers
-	return
+
+	err := c.do("incoming_transfers", &jin, &jd)
+	return jd.Transfers, err
 }
 
 func (c *client) QueryKey(keytype QueryKeyType) (key string, err error) {
@@ -363,30 +329,26 @@ func (c *client) Verify(data, address, signature string) (good bool, err error) 
 	return
 }
 
-func (c *client) ExportKeyImages() (signedkeyimages []SignedKeyImage, err error) {
+func (c *client) ExportKeyImages() ([]SignedKeyImage, error) {
 	jd := struct {
 		SignedKeyImages []SignedKeyImage `json:"signed_key_images"`
 	}{}
-	err = c.do("export_key_images", nil, &jd)
-	signedkeyimages = jd.SignedKeyImages
-	return
+	err := c.do("export_key_images", nil, &jd)
+	return jd.SignedKeyImages, err
 }
 
-func (c *client) ImportKeyImages(signedkeyimages []SignedKeyImage) (resp *ImportKeyImageResponse, err error) {
+func (c *client) ImportKeyImages(images []SignedKeyImage) (resp ImportKeyImageResponse, err error) {
 	jin := struct {
 		SignedKeyImages []SignedKeyImage `json:"signed_key_images"`
 	}{
-		signedkeyimages,
+		images,
 	}
-	resp = &ImportKeyImageResponse{}
-	err = c.do("import_key_images", &jin, resp)
-	if err != nil {
-		return nil, err
-	}
+	resp = ImportKeyImageResponse{}
+	err = c.do("import_key_images", &jin, &resp)
 	return
 }
 
-func (c *client) GetAddressBook(indexes []uint64) (entries []AddressBookEntry, err error) {
+func (c *client) GetAddressBook(indexes []uint64) ([]AddressBookEntry, error) {
 	jin := struct {
 		Indexes []uint64 `json:"entries"`
 	}{
@@ -395,16 +357,11 @@ func (c *client) GetAddressBook(indexes []uint64) (entries []AddressBookEntry, e
 	jd := struct {
 		Entries []AddressBookEntry `json:"entries"`
 	}{}
-	err = c.do("get_address_book", &jin, &jd)
-	if err != nil {
-		return nil, err
-	}
-	entries = jd.Entries
-	return
+	err := c.do("get_address_book", &jin, &jd)
+	return jd.Entries, err
 }
 
 func (c *client) AddAddressBook(entry AddressBookEntry) (index uint64, err error) {
-	entry.Index = 0
 	jd := struct {
 		Index uint64 `json:"index"`
 	}{}
@@ -446,16 +403,15 @@ func (c *client) StopMining() error {
 	return c.do("stop_mining", nil, nil)
 }
 
-func (c *client) GetLanguages() (languages []string, err error) {
+func (c *client) GetLanguages() ([]string, error) {
 	jd := struct {
 		Languages []string `json:"languages"`
 	}{}
-	err = c.do("get_languages", nil, &jd)
+	err := c.do("get_languages", nil, &jd)
 	if err != nil {
 		return nil, err
 	}
-	languages = jd.Languages
-	return
+	return jd.Languages, err
 }
 
 func (c *client) CreateWallet(filename, password, language string) error {
