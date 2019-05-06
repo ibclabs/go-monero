@@ -8,9 +8,8 @@ import (
 	"github.com/gorilla/rpc/v2/json2"
 )
 
-// New returns a new monero-wallet-rpc client.
-func New(cfg Config) *client {
-	cl := &client{
+func New(cfg Config) *Client {
+	cl := &Client{
 		addr:    cfg.Address,
 		headers: cfg.CustomHeaders,
 		httpcl:  http.DefaultClient,
@@ -23,13 +22,13 @@ func New(cfg Config) *client {
 	return cl
 }
 
-type client struct {
+type Client struct {
 	httpcl  *http.Client
 	addr    string
 	headers map[string]string
 }
 
-func (c *client) do(method string, in, out interface{}) error {
+func (c *Client) do(method string, in, out interface{}) error {
 	payload, err := json2.EncodeClientRequest(method, in)
 	if err != nil {
 		return err
@@ -59,7 +58,7 @@ func (c *client) do(method string, in, out interface{}) error {
 	return json2.DecodeClientResponse(resp.Body, out)
 }
 
-func (c *client) GetBalance() (uint64, uint64, error) {
+func (c *Client) GetBalance() (uint64, uint64, error) {
 	jd := struct {
 		Balance         uint64 `json:"balance"`
 		UnlockedBalance uint64 `json:"unlocked_balance"`
@@ -68,7 +67,7 @@ func (c *client) GetBalance() (uint64, uint64, error) {
 	return jd.Balance, jd.UnlockedBalance, err
 }
 
-func (c *client) GetAddress() (string, error) {
+func (c *Client) GetAddress() (string, error) {
 	jd := struct {
 		Address string `json:"address"`
 	}{}
@@ -76,7 +75,7 @@ func (c *client) GetAddress() (string, error) {
 	return jd.Address, err
 }
 
-func (c *client) GetHeight() (uint64, error) {
+func (c *Client) GetHeight() (uint64, error) {
 	jd := struct {
 		Height uint64 `json:"height"`
 	}{}
@@ -84,17 +83,17 @@ func (c *client) GetHeight() (uint64, error) {
 	return jd.Height, err
 }
 
-func (c *client) Transfer(req TransferRequest) (resp TransferResponse, err error) {
+func (c *Client) Transfer(req TransferRequest) (resp TransferResponse, err error) {
 	err = c.do("transfer", &req, &resp)
 	return
 }
 
-func (c *client) TransferSplit(req TransferRequest) (resp TransferSplitResponse, err error) {
+func (c *Client) TransferSplit(req TransferRequest) (resp TransferSplitResponse, err error) {
 	err = c.do("transfer_split", &req, &resp)
 	return
 }
 
-func (c *client) SweepDust() ([]string, error) {
+func (c *Client) SweepDust() ([]string, error) {
 	jd := struct {
 		TxHashList []string `json:"tx_hash_list"`
 	}{}
@@ -102,16 +101,16 @@ func (c *client) SweepDust() ([]string, error) {
 	return jd.TxHashList, err
 }
 
-func (c *client) SweepAll(req SweepAllRequest) (resp SweepAllResponse, err error) {
+func (c *Client) SweepAll(req SweepAllRequest) (resp SweepAllResponse, err error) {
 	err = c.do("sweep_all", &req, &resp)
 	return
 }
 
-func (c *client) Store() error {
+func (c *Client) Store() error {
 	return c.do("store", nil, nil)
 }
 
-func (c *client) GetPayments(id string) ([]Payment, error) {
+func (c *Client) GetPayments(id string) ([]Payment, error) {
 	jin := struct {
 		PaymentID string `json:"payment_id"`
 	}{
@@ -125,7 +124,7 @@ func (c *client) GetPayments(id string) ([]Payment, error) {
 	return jd.Payments, err
 }
 
-func (c *client) GetBulkPayments(payments []string, minHeight uint) ([]Payment, error) {
+func (c *Client) GetBulkPayments(payments []string, minHeight uint) ([]Payment, error) {
 	jin := struct {
 		PaymentIDs     []string `json:"payment_ids"`
 		MinBlockHeight uint     `json:"min_block_height"`
@@ -140,12 +139,12 @@ func (c *client) GetBulkPayments(payments []string, minHeight uint) ([]Payment, 
 	return jd.Payments, err
 }
 
-func (c *client) GetTransfers(req GetTransfersRequest) (resp GetTransfersResponse, err error) {
+func (c *Client) GetTransfers(req GetTransfersRequest) (resp GetTransfersResponse, err error) {
 	err = c.do("get_transfers", &req, &resp)
 	return
 }
 
-func (c *client) GetTransferByTxID(tx string) (transfer Transfer, err error) {
+func (c *Client) GetTransferByTxID(tx string) (transfer Transfer, err error) {
 	jin := struct {
 		TxID string `json:"txid"`
 	}{tx}
@@ -162,7 +161,7 @@ func (c *client) GetTransferByTxID(tx string) (transfer Transfer, err error) {
 	return
 }
 
-func (c *client) IncomingTransfers(transfer GetTransferType) ([]IncTransfer, error) {
+func (c *Client) IncomingTransfers(transfer GetTransferType) ([]IncTransfer, error) {
 	jin := struct {
 		TransferType GetTransferType `json:"transfer_type"`
 	}{
@@ -176,7 +175,7 @@ func (c *client) IncomingTransfers(transfer GetTransferType) ([]IncTransfer, err
 	return jd.Transfers, err
 }
 
-func (c *client) QueryKey(keytype QueryKeyType) (key string, err error) {
+func (c *Client) QueryKey(keytype QueryKeyType) (key string, err error) {
 	jin := struct {
 		KeyType QueryKeyType `json:"key_type"`
 	}{
@@ -193,7 +192,7 @@ func (c *client) QueryKey(keytype QueryKeyType) (key string, err error) {
 	return
 }
 
-func (c *client) MakeIntegratedAddress(paymentid string) (integratedaddr string, err error) {
+func (c *Client) MakeIntegratedAddress(paymentid string) (integratedaddr string, err error) {
 	jin := struct {
 		PaymentID string `json:"payment_id"`
 	}{
@@ -210,7 +209,7 @@ func (c *client) MakeIntegratedAddress(paymentid string) (integratedaddr string,
 	return
 }
 
-func (c *client) SplitIntegratedAddress(integratedaddr string) (paymentid, address string, err error) {
+func (c *Client) SplitIntegratedAddress(integratedaddr string) (paymentid, address string, err error) {
 	jin := struct {
 		IntegratedAddress string `json:"integrated_address"`
 	}{
@@ -229,11 +228,11 @@ func (c *client) SplitIntegratedAddress(integratedaddr string) (paymentid, addre
 	return
 }
 
-func (c *client) StopWallet() error {
+func (c *Client) StopWallet() error {
 	return c.do("stop_wallet", nil, nil)
 }
 
-func (c *client) MakeURI(req URIDef) (uri string, err error) {
+func (c *Client) MakeURI(req URIDef) (uri string, err error) {
 	jd := struct {
 		URI string `json:"uri"`
 	}{}
@@ -245,7 +244,7 @@ func (c *client) MakeURI(req URIDef) (uri string, err error) {
 	return
 }
 
-func (c *client) ParseURI(uri string) (parsed *URIDef, err error) {
+func (c *Client) ParseURI(uri string) (parsed *URIDef, err error) {
 	jin := struct {
 		URI string `json:"uri"`
 	}{
@@ -259,11 +258,11 @@ func (c *client) ParseURI(uri string) (parsed *URIDef, err error) {
 	return
 }
 
-func (c *client) RescanBlockchain() error {
+func (c *Client) RescanBlockchain() error {
 	return c.do("rescan_blockchain", nil, nil)
 }
 
-func (c *client) SetTxNotes(txids, notes []string) error {
+func (c *Client) SetTxNotes(txids, notes []string) error {
 	jin := struct {
 		TxIDs []string `json:"txids"`
 		Notes []string `json:"notes"`
@@ -274,7 +273,7 @@ func (c *client) SetTxNotes(txids, notes []string) error {
 	return c.do("set_tx_notes", &jin, nil)
 }
 
-func (c *client) GetTxNotes(txids []string) (notes []string, err error) {
+func (c *Client) GetTxNotes(txids []string) (notes []string, err error) {
 	jin := struct {
 		TxIDs []string `json:"txids"`
 	}{
@@ -291,7 +290,7 @@ func (c *client) GetTxNotes(txids []string) (notes []string, err error) {
 	return
 }
 
-func (c *client) Sign(data string) (signature string, err error) {
+func (c *Client) Sign(data string) (signature string, err error) {
 	jin := struct {
 		Data string `json:"data"`
 	}{
@@ -308,7 +307,7 @@ func (c *client) Sign(data string) (signature string, err error) {
 	return
 }
 
-func (c *client) Verify(data, address, signature string) (good bool, err error) {
+func (c *Client) Verify(data, address, signature string) (good bool, err error) {
 	jin := struct {
 		Data      string `json:"data"`
 		Address   string `json:"address"`
@@ -329,7 +328,7 @@ func (c *client) Verify(data, address, signature string) (good bool, err error) 
 	return
 }
 
-func (c *client) ExportKeyImages() ([]SignedKeyImage, error) {
+func (c *Client) ExportKeyImages() ([]SignedKeyImage, error) {
 	jd := struct {
 		SignedKeyImages []SignedKeyImage `json:"signed_key_images"`
 	}{}
@@ -337,7 +336,7 @@ func (c *client) ExportKeyImages() ([]SignedKeyImage, error) {
 	return jd.SignedKeyImages, err
 }
 
-func (c *client) ImportKeyImages(images []SignedKeyImage) (resp ImportKeyImageResponse, err error) {
+func (c *Client) ImportKeyImages(images []SignedKeyImage) (resp ImportKeyImageResponse, err error) {
 	jin := struct {
 		SignedKeyImages []SignedKeyImage `json:"signed_key_images"`
 	}{
@@ -348,7 +347,7 @@ func (c *client) ImportKeyImages(images []SignedKeyImage) (resp ImportKeyImageRe
 	return
 }
 
-func (c *client) GetAddressBook(indexes []uint64) ([]AddressBookEntry, error) {
+func (c *Client) GetAddressBook(indexes []uint64) ([]AddressBookEntry, error) {
 	jin := struct {
 		Indexes []uint64 `json:"entries"`
 	}{
@@ -361,7 +360,7 @@ func (c *client) GetAddressBook(indexes []uint64) ([]AddressBookEntry, error) {
 	return jd.Entries, err
 }
 
-func (c *client) AddAddressBook(entry AddressBookEntry) (index uint64, err error) {
+func (c *Client) AddAddressBook(entry AddressBookEntry) (index uint64, err error) {
 	jd := struct {
 		Index uint64 `json:"index"`
 	}{}
@@ -373,7 +372,7 @@ func (c *client) AddAddressBook(entry AddressBookEntry) (index uint64, err error
 	return
 }
 
-func (c *client) DeleteAddressBook(index uint64) error {
+func (c *Client) DeleteAddressBook(index uint64) error {
 	jin := struct {
 		Index uint64 `json:"index"`
 	}{
@@ -382,11 +381,11 @@ func (c *client) DeleteAddressBook(index uint64) error {
 	return c.do("delete_address_book", &jin, nil)
 }
 
-func (c *client) RescanSpent() error {
+func (c *Client) RescanSpent() error {
 	return c.do("rescan_spent", nil, nil)
 }
 
-func (c *client) StartMining(threads uint, background, ignorebattery bool) error {
+func (c *Client) StartMining(threads uint, background, ignorebattery bool) error {
 	jin := struct {
 		Threads       uint `json:"threads_count"`
 		Background    bool `json:"do_background_mining"`
@@ -399,11 +398,11 @@ func (c *client) StartMining(threads uint, background, ignorebattery bool) error
 	return c.do("start_mining", &jin, nil)
 }
 
-func (c *client) StopMining() error {
+func (c *Client) StopMining() error {
 	return c.do("stop_mining", nil, nil)
 }
 
-func (c *client) GetLanguages() ([]string, error) {
+func (c *Client) GetLanguages() ([]string, error) {
 	jd := struct {
 		Languages []string `json:"languages"`
 	}{}
@@ -414,7 +413,7 @@ func (c *client) GetLanguages() ([]string, error) {
 	return jd.Languages, err
 }
 
-func (c *client) CreateWallet(filename, password, language string) error {
+func (c *Client) CreateWallet(filename, password, language string) error {
 	jin := struct {
 		Filename string `json:"filename"`
 		Password string `json:"password"`
@@ -427,7 +426,7 @@ func (c *client) CreateWallet(filename, password, language string) error {
 	return c.do("create_wallet", &jin, nil)
 }
 
-func (c *client) OpenWallet(filename, password string) error {
+func (c *Client) OpenWallet(filename, password string) error {
 	jin := struct {
 		Filename string `json:"filename"`
 		Password string `json:"password"`

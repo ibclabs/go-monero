@@ -19,7 +19,7 @@ type BlockHeader struct {
 	Timestamp    uint   `json:"timestamp"`
 }
 
-func (c *client) GetLastBlockHeader() (res BlockHeaderResponse, err error) {
+func (c *Client) GetLastBlockHeader() (res BlockHeaderResponse, err error) {
 	err = c.do("getlastblockheader", nil, &res)
 	return
 }
@@ -31,7 +31,7 @@ type Block struct {
 	Status      string      `json:"status"`
 }
 
-func (c *client) GetBlockByHeight(height uint) (res Block, err error) {
+func (c *Client) GetBlockByHeight(height uint) (res Block, err error) {
 	req := struct {
 		Height uint `json:"height"`
 	}{height}
@@ -39,7 +39,7 @@ func (c *client) GetBlockByHeight(height uint) (res Block, err error) {
 	return
 }
 
-func (c *client) GetBlockByHash(hash string) (res Block, err error) {
+func (c *Client) GetBlockByHash(hash string) (res Block, err error) {
 	req := struct {
 		Hash string `json:"hash"`
 	}{hash}
