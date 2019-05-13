@@ -121,15 +121,17 @@ type GetTransfersResponse struct {
 
 // Transfer is the transfer data of
 type Transfer struct {
-	TxID         string        `json:"txid"`
-	PaymentID    string        `json:"payment_id"`
-	Height       uint64        `json:"height"`
-	Timestamp    uint64        `json:"timestamp"`
-	Amount       uint64        `json:"amount"`
-	Fee          uint64        `json:"fee"`
-	Note         string        `json:"note"`
-	Destinations []Destination `json:"destinations,omitempty"`
-	Type         string        `json:"type"`
+	TxID          string        `json:"txid"`
+	PaymentID     string        `json:"payment_id"`
+	Height        uint64        `json:"height"`
+	Timestamp     uint64        `json:"timestamp"`
+	Amount        uint64        `json:"amount"`
+	Fee           uint64        `json:"fee"`
+	Note          string        `json:"note"`
+	Destinations  []Destination `json:"destinations,omitempty"`
+	Type          string        `json:"type"`
+	Address       string        `json:"address"`
+	Confirmations uint64        `json:"confirmations"`
 }
 
 // IncTransfer is returned by IncomingTransfers
