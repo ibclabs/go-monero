@@ -2,6 +2,10 @@ package walletrpc
 
 // TransferRequest is the request body of the Transfer client rpc call.
 type TransferRequest struct {
+	// unsigned int; (Optional) Transfer from this account index
+	AccountIndex uint64 `json:"account_index"`
+	// unsigned int; Number of outputs to mix in the transaction (this output + N decoys from the blockchain).
+	RingSize uint64 `json:"ring_size"`
 	// Destinations - array of destinations to receive XMR:
 	Destinations []Destination `json:"destinations"`
 	// payment_id - string; (Optional) Random 32-byte/64-character hex string to identify a transaction.
